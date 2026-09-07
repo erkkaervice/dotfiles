@@ -253,6 +253,11 @@ end
 
 # This logic MUST only run in interactive shells, otherwise it breaks login.
 if status is-interactive
+	# Prompt for SSH keys if the agent is empty
+	if not ssh-add -l > /dev/null 2>&1
+		ssh-add
+	end
+
 	# Tmux Auto-Attach Logic: Removed the TERM_PROGRAM check to allow it in VS Code
 	if command -v tmux > /dev/null; and not set -q TMUX; and test -z "$VSCODE_RESOLVING_ENVIRONMENT"
 		if tmux has-session -t main 2>/dev/null
@@ -272,11 +277,11 @@ if test -f "$SSH_ENV_FISH"
 	source "$SSH_ENV_FISH"
 end
 
-# 2. Check if agent is actually alive and has keys
+# 2. Check if agent is actually alive
 # ssh-add -l returns 0 if good, 1 if empty, 2 if dead/unreachable
 ssh-add -l > /dev/null 2>&1
-if test $status -ne 0
-	# Agent is dead or empty. Run the POSIX init script to fix/start it.
+if test $status -eq 2
+	# Agent is dead. Run the POSIX init script to start it.
 	sh "$HOME/.ssh_agent_init"
 	# Reload the valid variables
 	source "$SSH_ENV_FISH"

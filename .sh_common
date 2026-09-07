@@ -272,6 +272,12 @@ fi
 # Only load remaining integrations if the shell is interactive
 if [ -n "$PS1" ]
 then
+	# Prompt for SSH keys if the agent is empty
+	if ! ssh-add -l >/dev/null 2>&1
+	then
+		ssh-add
+	fi
+
 	# Tmux
 	if [ -z "$VSCODE_RESOLVING_ENVIRONMENT" ]
 	then

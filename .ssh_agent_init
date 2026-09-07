@@ -34,10 +34,8 @@ start_agent() {
 	chmod 600 "${SSH_ENV_POSIX}"
 	chmod 600 "${SSH_ENV_FISH}"
 
-	# 5. Auto-add keys to this shared agent (ONLY if in a terminal)
-	if [ -t 0 ]; then
-		ssh-add
-	fi
+	# NOTE: Auto-adding keys (ssh-add) has been moved to interactive 
+	# shell initializations to prevent background boot sequence freezes.
 }
 
 # --- Main Logic ---
@@ -47,26 +45,14 @@ if [ -f "${SSH_ENV_POSIX}" ]; then
 	# Source the settings (load SSH_AUTH_SOCK and SSH_AGENT_PID)
 	. "${SSH_ENV_POSIX}" > /dev/null
 	
-	# 2. Check Status using ssh-add -l
-	# Returns 0: Keys present (All good)
-	# Returns 1: Agent active, but no keys (Needs add)
-	# Returns 2: Socket dead (Needs restart)
-	
-	ssh-add -l > /dev/null 2>&1
-	RESULT=$?
-
-	if [ $RESULT -eq 2 ]; then
+	# 2. Check if the agent process is actually running
+	# kill -0 checks for process existence without sending a termination signal
+	if ! kill -0 "$SSH_AGENT_PID" 2>/dev/null; then
 		# Agent is unresponsive/dead. Start new one.
 		start_agent
-	elif [ $RESULT -eq 1 ]; then
-		# Agent is running but empty. Add ONLY if in a terminal.
-		if [ -t 0 ]; then
-			echo "Agent has no identities. Adding now..."
-			ssh-add
-		fi
 	fi
 	
-	# If RESULT is 0, we do nothing. Total silence.
+	# Total silence on success. Key prompting is handled by foreground terminals.
 else
 	# No agent file found. Start new one.
 	start_agent
