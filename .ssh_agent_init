@@ -34,8 +34,10 @@ start_agent() {
 	chmod 600 "${SSH_ENV_POSIX}"
 	chmod 600 "${SSH_ENV_FISH}"
 
-	# 5. Auto-add keys to this shared agent
-	ssh-add
+	# 5. Auto-add keys to this shared agent (ONLY if in a terminal)
+	if [ -t 0 ]; then
+		ssh-add
+	fi
 }
 
 # --- Main Logic ---
@@ -54,16 +56,18 @@ if [ -f "${SSH_ENV_POSIX}" ]; then
 	RESULT=$?
 
 	if [ $RESULT -eq 2 ]; then
-		# Agent is unresponsive/dead. Start new one + Auto Prompt.
+		# Agent is unresponsive/dead. Start new one.
 		start_agent
 	elif [ $RESULT -eq 1 ]; then
-		# Agent is running but empty. Auto Prompt.
-		echo "Agent has no identities. Adding now..."
-		ssh-add
+		# Agent is running but empty. Add ONLY if in a terminal.
+		if [ -t 0 ]; then
+			echo "Agent has no identities. Adding now..."
+			ssh-add
+		fi
 	fi
 	
 	# If RESULT is 0, we do nothing. Total silence.
 else
-	# No agent file found. Start new one + Auto Prompt.
+	# No agent file found. Start new one.
 	start_agent
 fi
